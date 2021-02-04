@@ -10,6 +10,8 @@ import (
 	"golang.org/x/sync/errgroup"
 	"net/url"
 	"time"
+	"log"
+	"strings"
 )
 
 var zeroTime time.Time
@@ -55,6 +57,8 @@ func (c *Client) LoadDeadline(id StreamID, deadline time.Time) (Player, error) {
 	player, err = c.LoadWatchPlayerDeadline(id, deadline)
 	if err == nil {
 		return player, nil
+	} else {
+		log.Println("Failed to get watch player " + err.Error())
 	}
 
 	// If it fails, attempt to grab the embedded player second.
@@ -166,7 +170,8 @@ func (c *Client) LoadWatchPlayerDeadline(id StreamID, deadline time.Time) (Playe
 		return player, errors.New("could not find watch video player config in html page")
 	}
 
-	val, err := fastjson.ParseBytes(matches[1])
+	splitstring := strings.Split(string(matches[1]), ";</script>")
+	val, err := fastjson.ParseBytes([]byte(splitstring[0]))
 	if err != nil {
 		return player, fmt.Errorf("failed to parse video player config: %w", err)
 	}
@@ -175,10 +180,12 @@ func (c *Client) LoadWatchPlayerDeadline(id StreamID, deadline time.Time) (Playe
 
 	// Extract streaming info.
 
+	/*
 	val, err = fastjson.ParseBytes(val.GetStringBytes("args", "player_response"))
 	if err != nil {
 		return player, fmt.Errorf("failed to parse json response: %w", err)
 	}
+	*/
 
 	player.Streams = Streams{v: val}
 
@@ -210,7 +217,8 @@ func (c *Client) LoadEmbedPlayerAssetsDeadline(id StreamID, deadline time.Time) 
 		return assets, errors.New("could not find embed player config in html page")
 	}
 
-	val, err := fastjson.ParseBytes(matches[1])
+	splitstring := strings.Split(string(matches[1]), ");yt.setConfig(")
+	val, err := fastjson.ParseBytes([]byte(splitstring[0]))
 	if err != nil {
 		return assets, fmt.Errorf("failed to parse embed player config: %w", err)
 	}
